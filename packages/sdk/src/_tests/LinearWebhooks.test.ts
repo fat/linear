@@ -1,5 +1,5 @@
-import { LINEAR_WEBHOOK_TS_FIELD, LinearWebhooks } from "../webhooks";
 import crypto from "crypto";
+import { LINEAR_WEBHOOK_TS_FIELD, LinearWebhooks } from "../webhooks";
 
 describe("webhooks", () => {
   let parsedBody = {};
@@ -32,13 +32,13 @@ describe("webhooks", () => {
   it("incorrect signature, should fail verification", async () => {
     const webhook = new LinearWebhooks("SECRET");
     const signature = crypto.createHmac("sha256", "WRONG_SECRET").update(rawBody).digest("hex");
-    expect(() => webhook.verify(rawBody, signature)).toThrowError("Invalid webhook signature");
+    expect(async () => await webhook.verify(rawBody, signature)).toThrowError("Invalid webhook signature");
   });
 
   it("correct signature, incorrect timestamp should fail verification", async () => {
     const webhook = new LinearWebhooks("SECRET");
     const signature = crypto.createHmac("sha256", "SECRET").update(rawBody).digest("hex");
-    expect(() => webhook.verify(rawBody, signature, parsedBody[LINEAR_WEBHOOK_TS_FIELD])).toThrowError(
+    expect(async () => await webhook.verify(rawBody, signature, parsedBody[LINEAR_WEBHOOK_TS_FIELD])).toThrowError(
       "Invalid webhook timestamp"
     );
   });
@@ -46,7 +46,7 @@ describe("webhooks", () => {
   it("correct signature, no timestamp, should pass verification", async () => {
     const webhook = new LinearWebhooks("SECRET");
     const signature = crypto.createHmac("sha256", "SECRET").update(rawBody).digest("hex");
-    expect(() => webhook.verify(rawBody, signature)).toBeTruthy();
+    expect(async () => await webhook.verify(rawBody, signature)).toBeTruthy();
   });
 
   it("correct signature, correct timestamp should pass verification", async () => {
@@ -56,6 +56,6 @@ describe("webhooks", () => {
 
     const webhook = new LinearWebhooks("SECRET");
     const signature = crypto.createHmac("sha256", "SECRET").update(rawBody).digest("hex");
-    expect(() => webhook.verify(rawBody, signature, parsedBody[LINEAR_WEBHOOK_TS_FIELD])).toBeTruthy();
+    expect(async () => await webhook.verify(rawBody, signature, parsedBody[LINEAR_WEBHOOK_TS_FIELD])).toBeTruthy();
   });
 });
