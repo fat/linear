@@ -1,5 +1,3 @@
-import crypto from "crypto";
-
 export const LINEAR_WEBHOOK_SIGNATURE_HEADER = "linear-signature";
 export const LINEAR_WEBHOOK_TS_FIELD = "webhookTimestamp";
 
@@ -15,15 +13,40 @@ export class LinearWebhooks {
    * @param signature The signature to verify.
    * @param timestamp The `webhookTimestamp` field from the request parsed body.
    */
-  public verify(rawBody: Buffer, signature: string, timestamp?: number): boolean {
-    const verificationBuffer = Buffer.from(crypto.createHmac("sha256", this.secret).update(rawBody).digest("hex"));
-    const signatureBuffer = Buffer.from(signature);
+  public async verify(rawBody: Buffer, signature: string, timestamp?: number): Promise<boolean> {
+    const encoder = new TextEncoder();
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(this.secret),
+      { name: "HMAC", hash: { name: "SHA-256" } },
+      false,
+      ["sign"]
+    );
+
+    const signatureBuffer = new Uint8Array(Buffer.from(signature, 'hex'));
+
+    const verificationArrayBuffer = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      rawBody
+    );
+
+    const verificationBuffer = new Uint8Array(verificationArrayBuffer);
 
     if (verificationBuffer.length !== signatureBuffer.length) {
       throw new Error("Invalid webhook signature");
     }
 
-    if (!crypto.timingSafeEqual(verificationBuffer, signatureBuffer)) {
+    // Timing-safe comparison
+    let isValid = true;
+    for (let i = 0; i < verificationBuffer.length; i++) {
+      if (verificationBuffer[i] !== signatureBuffer[i]) {
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
       throw new Error("Invalid webhook signature");
     }
 
